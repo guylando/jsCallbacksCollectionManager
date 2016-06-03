@@ -47,27 +47,32 @@ function addCallbacksToDictionary(existingCallbacksDictionary, newCallbacks, uni
                 delete existingCallbacksDictionary[key];
             }
         });
-        $.each(existingCallbacksDictionary.callbacksDictionary["1"], function (currCallbackName, currCallback) {
-            existingCallbacksDictionary[currCallbackName] = currCallback;
-        });
-        for (var currPriority = 2, maxPriority = existingCallbacksDictionary.callbacksDictionary.maxPriority; currPriority <= maxPriority; currPriority++) {
+        /* First calculate list of callbacks for the events and then create one callback function calling them in desired order. This is better then overloading the stack with each function calling previous function. */
+        var eventsCallbacksLists = {};
+        for (var currPriority = 1, maxPriority = existingCallbacksDictionary.callbacksDictionary.maxPriority; currPriority <= maxPriority; currPriority++) {
             $.each(existingCallbacksDictionary.callbacksDictionary["" + currPriority], function (currCallbackName, currCallbackValue) {
                 /* Save in closure to prevent it changing in loop */
                 var currClosureCallbackName = currCallbackName;
                 var currClosureCallbackValue = currCallbackValue;
-                /* If new callback then just add it as is and if existing then call it after calling previous callback */
-                if (existingCallbacksDictionary[currClosureCallbackName]) {
-                    /* Save old function in closure to prevent calling the function itself */
-                    var previousFunc = existingCallbacksDictionary[currClosureCallbackName];
-                    existingCallbacksDictionary[currClosureCallbackName] = function () {
-                        previousFunc();
-                        currClosureCallbackValue();
-                    };
+                /* Add callback to appropriate list */
+                if (eventsCallbacksLists[currClosureCallbackName]) {
+                    eventsCallbacksLists[currClosureCallbackName].push(currClosureCallbackValue);
                 }
                 else {
-                    existingCallbacksDictionary[currClosureCallbackName] = currClosureCallbackValue;
+                    eventsCallbacksLists[currClosureCallbackName] = [currClosureCallbackValue];
                 }
             });
         }
+        $.each(eventsCallbacksLists, function (eventName, callbacksList) {
+            /* Save in closure to prevent it changing in loop */
+            var currClosureCallbacksList = callbacksList;
+            /* Call all callbacks in the list */
+            existingCallbacksDictionary[eventName] = function () {
+                /* Most effecient looping as stated here: http://stackoverflow.com/questions/5349425/whats-the-fastest-way-to-loop-through-an-array-in-javascript/7252102#7252102 */
+                for (var currCallbackIndex = 0, callbackLength = currClosureCallbacksList.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
+                    currClosureCallbacksList[currCallbackIndex]();
+                }
+            };
+        });
     }
 }
