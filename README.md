@@ -15,14 +15,14 @@ Manages callbacks dictionary with ids to different callbacks allowing to overrid
 Example:
 
     var a = {};
-    addCallbacksToDictionary(a, { ona: function(){alert(1);}}, "aa");
+    addCallbacksToDictionary(a, { ona: function(){alert(1);}}, "someId");
     a.ona(); // alerts 1
-    addCallbacksToDictionary(a, { ona: function(){alert(2);}}, "bb");
+    addCallbacksToDictionary(a, { ona: function(){alert(2);}}, "Anotherid");
     a.ona(); // alerts 1 and then alerts 2
-    addCallbacksToDictionary(a, { ona: function(){alert(3);}}, "aa");
+    addCallbacksToDictionary(a, { ona: function(){alert(3);}}, "someId");
     a.ona(); // alerts 3 and then alerts 2
-    addCallbacksToDictionary(a, { ona: function(){alert(7);}}, "cc");
+    addCallbacksToDictionary(a, { ona: function(){alert(7);}}, "thirdId");
     a.ona(); // alerts 3 and then alerts 2 and then 7
-    addCallbacksToDictionary(a, { ona: function(){alert(6);}}, "bb");
+    addCallbacksToDictionary(a, { ona: function(){alert(6);}}, "Anotherid");
     a.ona(); // alerts 3 and then alerts 6 and then 7
 
