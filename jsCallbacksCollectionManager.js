@@ -82,10 +82,9 @@ function addCallbacksToDictionary(existingCallbacksDictionary, newCallbacks, uni
             var currClosureCallbacksList = eventsCallbacksLists[currCallbackName];
             /* Call all callbacks in the list */
             existingCallbacksDictionary[currCallbackName] = function () {
-                for (var currCallbackListIndex = 0, callbackListLength = currClosureCallbacksList.length; currCallbackListIndex < callbackListLength; ++currCallbackListIndex) {
-                    currClosureCallbacksList[currCallbackListIndex]();
-                }
-            };
+            for (var i = 0, callbackListLength = currClosureCallbacksList.length; i < callbackListLength; ++i) {
+                currClosureCallbacksList[i]();
+            }
         }
     }
 }
