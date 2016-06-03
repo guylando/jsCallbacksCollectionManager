@@ -6,6 +6,13 @@
     New callback is identified by the uniqueCallbacksId and if the previous uniqueCallbacksId is same as new uniqueCallbacksId then the callback is overridden.
     Make sure the callbacksIds and callbacksDictionary properties of the callbacks dictionary are not used outside this because they are changed here.
 
+    Assumptions: ECMA 5+ browsers or appropriate shim for Object.keys.
+
+    Parameters:
+        existingCallbacksDictionary - An empty object {} or a dictionary created by a previous call to addCallbacksToDictionary on the empty object or on the output of addCallbacksToDictionary.
+        newCallbacks                - New collection of callbacks to merge into existingCallbacksDictionary.
+        uniqueCallbacksId           - Unique id associated with current new collection of callbacks. Pass same uniqueCallbacksId to override previous callbacks associated with that id.
+
     Example:
     var a = {};
     addCallbacksToDictionary(a, { ona: function(){alert(1);}}, "aa");
@@ -20,11 +27,15 @@
     a.ona(); // alerts 3 and then alerts 6 and then 7
  */
 function addCallbacksToDictionary(existingCallbacksDictionary, newCallbacks, uniqueCallbacksId) {
-    if ($.isEmptyObject(existingCallbacksDictionary)) {
+    /* Check if object is empty according to: http://stackoverflow.com/questions/679915/how-do-i-test-for-an-empty-javascript-object/32108184#32108184 */
+    if (Object.keys(existingCallbacksDictionary).length === 0 && existingCallbacksDictionary.constructor === Object) {
         /* Don't just assign but make a clone to prevent circular reference in the callbacksDictionary */
-        $.each(newCallbacks, function (currCallbackName, currCallback) {
-            existingCallbacksDictionary[currCallbackName] = currCallback;
-        });
+        /* Most efficient looping as stated here: http://stackoverflow.com/questions/5349425/whats-the-fastest-way-to-loop-through-an-array-in-javascript/7252102#7252102 */
+        for (var currCallbackIndex = 0, eventsName = Object.keys(newCallbacks), callbackLength = eventsName.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
+            var currCallbackName = eventsName[currCallbackIndex];
+            existingCallbacksDictionary[currCallbackName] = newCallbacks[currCallbackName];
+        }
+
         existingCallbacksDictionary.callbacksIds = {};
         existingCallbacksDictionary.callbacksIds[uniqueCallbacksId] = "1";
         existingCallbacksDictionary.callbacksDictionary = { "1": newCallbacks };
@@ -42,37 +53,39 @@ function addCallbacksToDictionary(existingCallbacksDictionary, newCallbacks, uni
         }
 
         /* Build final callbacks from the callbacks callbacksDictionary using appropriate priorities */
-        Object.keys(existingCallbacksDictionary).forEach(function (key) {
-            if (key !== "callbacksIds" && key !== "callbacksDictionary") {
-                delete existingCallbacksDictionary[key];
+        for (var currCallbackIndex = 0, eventsName = Object.keys(existingCallbacksDictionary), callbackLength = eventsName.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
+            var currCallbackName = eventsName[currCallbackIndex];
+            if (currCallbackName !== "callbacksIds" && currCallbackName !== "callbacksDictionary") {
+                delete existingCallbacksDictionary[currCallbackName];
             }
-        });
+        }
+
         /* First calculate list of callbacks for the events and then create one callback function calling them in desired order. This is better then overloading the stack with each function calling previous function. */
         var eventsCallbacksLists = {};
         for (var currPriority = 1, maxPriority = existingCallbacksDictionary.callbacksDictionary.maxPriority; currPriority <= maxPriority; currPriority++) {
-            $.each(existingCallbacksDictionary.callbacksDictionary["" + currPriority], function (currCallbackName, currCallbackValue) {
-                /* Save in closure to prevent it changing in loop */
-                var currClosureCallbackName = currCallbackName;
-                var currClosureCallbackValue = currCallbackValue;
+            var currCallbacksDictionary = existingCallbacksDictionary.callbacksDictionary["" + currPriority];
+            for (var currCallbackIndex = 0, eventsName = Object.keys(currCallbacksDictionary), callbackLength = eventsName.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
+                var currCallbackName = eventsName[currCallbackIndex];
+                var currCallbackValue = currCallbacksDictionary[currCallbackName];
                 /* Add callback to appropriate list */
-                if (eventsCallbacksLists[currClosureCallbackName]) {
-                    eventsCallbacksLists[currClosureCallbackName].push(currClosureCallbackValue);
+                if (eventsCallbacksLists[currCallbackName]) {
+                    eventsCallbacksLists[currCallbackName].push(currCallbackValue);
                 }
                 else {
-                    eventsCallbacksLists[currClosureCallbackName] = [currClosureCallbackValue];
+                    eventsCallbacksLists[currCallbackName] = [currCallbackValue];
                 }
-            });
+            }
         }
-        $.each(eventsCallbacksLists, function (eventName, callbacksList) {
+        for (var currCallbackIndex = 0, eventsName = Object.keys(eventsCallbacksLists), callbackLength = eventsName.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
+            var currCallbackName = eventsName[currCallbackIndex];
             /* Save in closure to prevent it changing in loop */
-            var currClosureCallbacksList = callbacksList;
+            var currClosureCallbacksList = eventsCallbacksLists[currCallbackName];
             /* Call all callbacks in the list */
-            existingCallbacksDictionary[eventName] = function () {
-                /* Most effecient looping as stated here: http://stackoverflow.com/questions/5349425/whats-the-fastest-way-to-loop-through-an-array-in-javascript/7252102#7252102 */
-                for (var currCallbackIndex = 0, callbackLength = currClosureCallbacksList.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
-                    currClosureCallbacksList[currCallbackIndex]();
+            existingCallbacksDictionary[currCallbackName] = function () {
+                for (var currCallbackListIndex = 0, callbackListLength = currClosureCallbacksList.length; currCallbackListIndex < callbackListLength; ++currCallbackListIndex) {
+                    currClosureCallbacksList[currCallbackListIndex]();
                 }
             };
-        });
+        }
     }
 }
