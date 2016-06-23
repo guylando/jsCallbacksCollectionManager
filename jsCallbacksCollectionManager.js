@@ -1,4 +1,23 @@
 /* 
+	Checks if a value is undefined in a way that will work in all browsers as suggested here:
+	http://stackoverflow.com/questions/7041123/test-if-something-is-not-undefined-in-javascript/17635768#17635768
+
+	Returns true if undefined and returns false if not undefined
+*/
+function checkIfUndefined(value) {
+    try {
+        if (typeof (value) !== 'undefined') {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+    catch (e) {
+        return true;
+    }
+}
+/* 
     Manages callbacks dictionary with ids to different callbacks allowing to override specific previous callbacks.
     Useful for example when there is a global callbacks array which different parts of the code register callbacks to and you want different parts of code not
     to override each others callbacks however to let the specific part itself override its own callback for example on window resize event.
@@ -41,7 +60,7 @@ function addCallbacksToDictionary(existingCallbacksDictionary, newCallbacks, uni
         existingCallbacksDictionary._callbacksList = [newCallbacks];
     }
     else {
-        if (existingCallbacksDictionary._callbacksIds[uniqueCallbacksId]) {
+        if (!checkIfUndefined(existingCallbacksDictionary._callbacksIds[uniqueCallbacksId])) {
             /* Override previous callbacks which had same id and leave new callbacks at same priority as previous */
             existingCallbacksDictionary._callbacksList[existingCallbacksDictionary._callbacksIds[uniqueCallbacksId]] = newCallbacks;
         }
