@@ -46,12 +46,12 @@ function checkIfUndefined(value) {
     a.ona(); // alerts 3 and then alerts 6 and then 7
  */
 function addCallbacksToDictionary(existingCallbacksDictionary, newCallbacks, uniqueCallbacksId) {
-    /* Check if object is empty according to: http://stackoverflow.com/questions/679915/how-do-i-test-for-an-empty-javascript-object/32108184#32108184 */
+   /* Check if object is empty according to: http://stackoverflow.com/questions/679915/how-do-i-test-for-an-empty-javascript-object/32108184#32108184 */
     if (Object.keys(existingCallbacksDictionary).length === 0 && existingCallbacksDictionary.constructor === Object) {
         /* Don't just assign but make a clone to prevent circular reference in the callbacksList */
         /* Most efficient looping as stated here: http://stackoverflow.com/questions/5349425/whats-the-fastest-way-to-loop-through-an-array-in-javascript/7252102#7252102 */
-        for (var currCallbackIndex = 0, eventsName = Object.keys(newCallbacks), callbackLength = eventsName.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
-            var currCallbackName = eventsName[currCallbackIndex];
+        for (let currCallbackIndex = 0, eventsName = Object.keys(newCallbacks), callbackLength = eventsName.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
+            const currCallbackName = eventsName[currCallbackIndex];
             existingCallbacksDictionary[currCallbackName] = newCallbacks[currCallbackName];
         }
 
@@ -70,39 +70,49 @@ function addCallbacksToDictionary(existingCallbacksDictionary, newCallbacks, uni
         }
 
         /* Build final callbacks from the callbacks callbacksList using appropriate priorities */
-        for (var currCallbackIndex = 0, eventsName = Object.keys(existingCallbacksDictionary), callbackLength = eventsName.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
-            var currCallbackName = eventsName[currCallbackIndex];
-            if (currCallbackName !== "_callbacksIds" && currCallbackName !== "_callbacksList") {
+        for (let currCallbackIndex = 0, eventsName = Object.keys(existingCallbacksDictionary), callbackLength = eventsName.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
+            const currCallbackName = eventsName[currCallbackIndex];
+            /* Delete functions from existing callbacks dictionary, them add later in wrapper */
+            if (currCallbackName !== "_callbacksIds" && currCallbackName !== "_callbacksList" && existingCallbacksDictionary[currCallbackName].constructor === Function) {
                 delete existingCallbacksDictionary[currCallbackName];
             }
         }
 
-        /* First calculate list of callbacks for the events and then create one callback function calling them in desired order. This is better then overloading the stack with each function calling previous function. */
+        /* First calculate list of callbacks for the events and then create one callback function calling them in desired order. This is better then overloading the stack with eachon that wrap all functions by key in o function calling previous function. */
         var eventsCallbacksLists = {};
         for (var currPriority = 0, maxPriority = existingCallbacksDictionary._callbacksList.length; currPriority < maxPriority; currPriority++) {
             var currCallbacksDictionary = existingCallbacksDictionary._callbacksList[currPriority];
-            for (var currCallbackIndex = 0, eventsName = Object.keys(currCallbacksDictionary), callbackLength = eventsName.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
-                var currCallbackName = eventsName[currCallbackIndex];
+            for (let currCallbackIndex = 0, eventsName = Object.keys(currCallbacksDictionary), callbackLength = eventsName.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
+                const currCallbackName = eventsName[currCallbackIndex];
                 var currCallbackValue = currCallbacksDictionary[currCallbackName];
-                /* Add callback to appropriate list */
-                if (eventsCallbacksLists[currCallbackName]) {
-                    eventsCallbacksLists[currCallbackName].push(currCallbackValue);
-                }
-                else {
-                    eventsCallbacksLists[currCallbackName] = [currCallbackValue];
+                /* Add only functions, we don't want add properties in wrapper function */
+                if (currCallbackValue.constructor === Function) {
+                    /* Add callback to appropriate list */
+                    if (eventsCallbacksLists[currCallbackName]) {
+                        eventsCallbacksLists[currCallbackName].push(currCallbackValue);
+                    }
+                    else {
+                        eventsCallbacksLists[currCallbackName] = [currCallbackValue];
+                    }
                 }
             }
         }
-        for (var currCallbackIndex = 0, eventsName = Object.keys(eventsCallbacksLists), callbackLength = eventsName.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
-            var currCallbackName = eventsName[currCallbackIndex];
-            /* Save in closure to prevent it changing in loop */
-            var currClosureCallbacksList = eventsCallbacksLists[currCallbackName];
+
+        /* Function that wrap all functions by key in one function callback and in cycle call all of them */
+        var combineAllSimilarFunctionsByCallbackNameIntoOne = function (currCallbackName, currClosureCallbacksList) {
             /* Call all callbacks in the list */
             existingCallbacksDictionary[currCallbackName] = function () {
                 for (var i = 0, callbackListLength = currClosureCallbacksList.length; i < callbackListLength; ++i) {
                     currClosureCallbacksList[i]();
                 }
             };
+        };
+        for (let currCallbackIndex = 0, eventsName = Object.keys(eventsCallbacksLists), callbackLength = eventsName.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
+            const currCallbackName = eventsName[currCallbackIndex];
+            /* Save in closure to prevent it changing in loop */
+            var currClosureCallbacksList = eventsCallbacksLists[currCallbackName];
+            /* It must be a function call, else in anonymous function we receive last value of variable currClosureCallbacksList */
+            combineAllSimilarFunctionsByCallbackNameIntoOne(currCallbackName, currClosureCallbacksList);
         }
     }
 }
