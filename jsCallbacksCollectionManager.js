@@ -72,13 +72,13 @@ function addCallbacksToDictionary(existingCallbacksDictionary, newCallbacks, uni
         /* Build final callbacks from the callbacks callbacksList using appropriate priorities */
         for (let currCallbackIndex = 0, eventsName = Object.keys(existingCallbacksDictionary), callbackLength = eventsName.length; currCallbackIndex < callbackLength; ++currCallbackIndex) {
             const currCallbackName = eventsName[currCallbackIndex];
-            /* Delete functions from existing callbacks dictionary, them add later in wrapper */
+            /* Delete functions from existing callbacks dictionary, then add later in wrapper */
             if (currCallbackName !== "_callbacksIds" && currCallbackName !== "_callbacksList" && existingCallbacksDictionary[currCallbackName].constructor === Function) {
                 delete existingCallbacksDictionary[currCallbackName];
             }
         }
 
-        /* First calculate list of callbacks for the events and then create one callback function calling them in desired order. This is better then overloading the stack with eachon that wrap all functions by key in o function calling previous function. */
+        /* First calculate list of callbacks for the events and then create one callback function calling them in desired order. This is better than overloading the stack by each function calling the next function. */
         var eventsCallbacksLists = {};
         for (var currPriority = 0, maxPriority = existingCallbacksDictionary._callbacksList.length; currPriority < maxPriority; currPriority++) {
             var currCallbacksDictionary = existingCallbacksDictionary._callbacksList[currPriority];
